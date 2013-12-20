@@ -14,34 +14,24 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+#ifndef COMMON_H
+#define COMMON_H
 
-#include <gtk/gtk.h>
+#define GLOBAL_QUEUE    42
 
-#include "common.h"
-#include "client/logic.h"
-#include "client/view.h"
+typedef struct _login_msg {
+    long mtype;
+    char nickname[32];
+} login_msg;
 
+typedef struct _preferences {
+    int level;
+    int color;
+} preferences;
 
-int main(int argc, char **argv) {
-    gtk_init(&argc, &argv); //initializtion of gtk module
+typedef struct _player {
+    char nickname[32];
+    preferences pref;
+} player;
 
-    //show window with input for player info
-    player p = show_new_player();
-
-    connect_to_server();
-    //main window widget
-    GtkWidget *window;
-    window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-    gtk_window_set_title(GTK_WINDOW(window), "Draughts");
-    g_signal_connect(window, "destroy", 
-        G_CALLBACK(gtk_main_quit), NULL);
-    gtk_container_set_border_width (GTK_CONTAINER (window), 200);
-    //show widgets
-
-    gtk_widget_show(window);
-
-    //main loop
-    gtk_main();
-
-    return 0;
-}
+#endif

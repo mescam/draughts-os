@@ -15,33 +15,11 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <gtk/gtk.h>
-
+#ifndef VIEW_H
+#define VIEW_H
 #include "common.h"
-#include "client/logic.h"
-#include "client/view.h"
 
+void show_perror_and_exit();
+player show_new_player();
 
-int main(int argc, char **argv) {
-    gtk_init(&argc, &argv); //initializtion of gtk module
-
-    //show window with input for player info
-    player p = show_new_player();
-
-    connect_to_server();
-    //main window widget
-    GtkWidget *window;
-    window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-    gtk_window_set_title(GTK_WINDOW(window), "Draughts");
-    g_signal_connect(window, "destroy", 
-        G_CALLBACK(gtk_main_quit), NULL);
-    gtk_container_set_border_width (GTK_CONTAINER (window), 200);
-    //show widgets
-
-    gtk_widget_show(window);
-
-    //main loop
-    gtk_main();
-
-    return 0;
-}
+#endif

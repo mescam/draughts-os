@@ -14,34 +14,22 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+#include <sys/types.h>
+#include <sys/msg.h>
+#include <sys/ipc.h>
+#include "string.h"
 
-#include <gtk/gtk.h>
-
-#include "common.h"
 #include "client/logic.h"
+#include "common.h"
 #include "client/view.h"
 
-
-int main(int argc, char **argv) {
-    gtk_init(&argc, &argv); //initializtion of gtk module
-
-    //show window with input for player info
-    player p = show_new_player();
-
-    connect_to_server();
-    //main window widget
-    GtkWidget *window;
-    window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-    gtk_window_set_title(GTK_WINDOW(window), "Draughts");
-    g_signal_connect(window, "destroy", 
-        G_CALLBACK(gtk_main_quit), NULL);
-    gtk_container_set_border_width (GTK_CONTAINER (window), 200);
-    //show widgets
-
-    gtk_widget_show(window);
-
-    //main loop
-    gtk_main();
-
-    return 0;
+void connect_to_server() {
+    int res;
+    login_msg login;
+    login.mtype = 0;
+    strcpy(login.nickname, "mescam");
+    res = msgsnd(GLOBAL_QUEUE, &login, sizeof(login_msg) - sizeof(long), 0);
+    if(res < 0) {
+            show_perror_and_exit();
+    }
 }
