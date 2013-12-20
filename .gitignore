@@ -16,3 +16,8 @@
 *.exe
 *.out
 *.app
+bin/draughts-client
+bin/draughts-server
+
+# Sublime files
+*sublime*
