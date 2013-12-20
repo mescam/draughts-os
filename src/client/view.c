@@ -24,13 +24,17 @@
 #include "client/view.h"
 
 void show_perror_and_exit() {
+    show_error_msg_and_exit(strerror(errno));
+}
+
+void show_error_msg_and_exit(char* err) {
     GtkWidget *dialog;
     dialog = gtk_message_dialog_new(NULL,
                                     GTK_DIALOG_MODAL,
                                     GTK_MESSAGE_ERROR,
                                     GTK_BUTTONS_OK,
                                     "%s", 
-                                    strerror(errno));
+                                    err);
     gtk_dialog_run (GTK_DIALOG (dialog));
     gtk_widget_destroy (dialog);
     exit(1);
@@ -51,6 +55,10 @@ player show_new_player() {
     g_object_unref(G_OBJECT(builder));
     gtk_dialog_run(window);
     strcpy(p.nickname, gtk_entry_get_text(nickname));
+
+    if(strlen(p.nickname) == 0) {
+        show_error_msg_and_exit("Empty nickname is not allowed.");
+    }
 
     //TODO: get preferences from window
 

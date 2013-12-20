@@ -21,5 +21,6 @@
 
 void show_perror_and_exit();
 player show_new_player();
+void show_error_msg_and_exit(char* err);
 
 #endif

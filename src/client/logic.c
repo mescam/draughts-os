@@ -30,6 +30,6 @@ void connect_to_server() {
     strcpy(login.nickname, "mescam");
     res = msgsnd(GLOBAL_QUEUE, &login, sizeof(login_msg) - sizeof(long), 0);
     if(res < 0) {
-            show_perror_and_exit();
+            show_error_msg_and_exit("Error while connecting to server");
     }
 }
