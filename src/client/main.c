@@ -27,6 +27,8 @@ int main(int argc, char **argv) {
 
     //show window with input for player info
     player p = show_new_player();
+    g_message("Registering new user with nickname %s, level %d and color preference %d", 
+        p.nickname, p.pref.level, p.pref.color);
 
     connect_to_server();
     //main window widget

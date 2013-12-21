@@ -44,23 +44,42 @@ player show_new_player() {
     GtkBuilder *builder;
     GtkDialog *window;
     GtkEntry *nickname;
+    GtkToggleButton *r1, *r2, /**r3,*/ *r4/*, *r5*/; //radio buttons from window 
     player p;
 
     builder = gtk_builder_new();
     gtk_builder_add_from_file(builder, "assets/new_player.glade", NULL);
     window = GTK_DIALOG(gtk_builder_get_object(builder, "window"));
     nickname = GTK_ENTRY(gtk_builder_get_object(builder, "entry1"));
+    //awful but works
+    r1 = GTK_TOGGLE_BUTTON(gtk_builder_get_object(builder, "radiobutton1"));
+    r2 = GTK_TOGGLE_BUTTON(gtk_builder_get_object(builder, "radiobutton2"));
+    //r3 = GTK_TOGGLE_BUTTON(gtk_builder_get_object(builder, "radiobutton3"));
+    r4 = GTK_TOGGLE_BUTTON(gtk_builder_get_object(builder, "radiobutton4"));
+    //r5 = GTK_TOGGLE_BUTTON(gtk_builder_get_object(builder, "radiobutton5"));
     gtk_builder_connect_signals(builder, NULL);
 
     g_object_unref(G_OBJECT(builder));
     gtk_dialog_run(window);
-    strcpy(p.nickname, gtk_entry_get_text(nickname));
 
+    //get user nickname
+    strcpy(p.nickname, gtk_entry_get_text(nickname));
     if(strlen(p.nickname) == 0) {
         show_error_msg_and_exit("Empty nickname is not allowed.");
     }
+    //get level
+    if(gtk_toggle_button_get_active(r1))
+        p.pref.level = 0;
+    else if(gtk_toggle_button_get_active(r2))
+        p.pref.level = 1;
+    else
+        p.pref.level = 2;
 
-    //TODO: get preferences from window
+    //get color
+    if(gtk_toggle_button_get_active(r4))
+        p.pref.color = 0;
+    else
+        p.pref.color = 1;
 
     return p;
 }
