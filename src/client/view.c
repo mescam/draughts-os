@@ -44,7 +44,7 @@ player show_new_player() {
     GtkBuilder *builder;
     GtkDialog *window;
     GtkEntry *nickname;
-    GtkToggleButton *r1, *r2, /**r3,*/ *r4/*, *r5*/; //radio buttons from window 
+    GtkToggleButton *r1, *r2, *r4; //radio buttons from window 
     player p;
 
     builder = gtk_builder_new();
@@ -54,13 +54,11 @@ player show_new_player() {
     //awful but works
     r1 = GTK_TOGGLE_BUTTON(gtk_builder_get_object(builder, "radiobutton1"));
     r2 = GTK_TOGGLE_BUTTON(gtk_builder_get_object(builder, "radiobutton2"));
-    //r3 = GTK_TOGGLE_BUTTON(gtk_builder_get_object(builder, "radiobutton3"));
     r4 = GTK_TOGGLE_BUTTON(gtk_builder_get_object(builder, "radiobutton4"));
-    //r5 = GTK_TOGGLE_BUTTON(gtk_builder_get_object(builder, "radiobutton5"));
     gtk_builder_connect_signals(builder, NULL);
-
     g_object_unref(G_OBJECT(builder));
-    gtk_dialog_run(window);
+
+    gtk_dialog_run(window); //wait for input
 
     //get user nickname
     strcpy(p.nickname, gtk_entry_get_text(nickname));

@@ -30,6 +30,10 @@ int main(int argc, char **argv) {
     g_message("Registering new user with nickname %s, level %d and color preference %d", 
         p.nickname, p.pref.level, p.pref.color);
 
+    //create shared memory structure
+    int shmid = get_shm_key();
+    g_message("Registered shared memory with key: %d", shmid);
+
     connect_to_server();
     //main window widget
     GtkWidget *window;

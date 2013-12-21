@@ -17,6 +17,7 @@
 #include <sys/types.h>
 #include <sys/msg.h>
 #include <sys/ipc.h>
+#include <sys/shm.h>
 #include "string.h"
 
 #include "client/logic.h"
@@ -32,4 +33,12 @@ void connect_to_server() {
     if(res < 0) {
             show_error_msg_and_exit("Error while connecting to server");
     }
+}
+
+int get_shm_key() {
+    int k = shmget(IPC_PRIVATE, sizeof(preferences), 0666);
+    if (k < 0) {
+        show_perror_and_exit();
+    }
+    return k;
 }
