@@ -27,14 +27,13 @@ int main(int argc, char **argv) {
 
     //show window with input for player info
     player p = show_new_player();
-    g_message("Registering new user with nickname %s, level %d and color preference %d", 
-        p.nickname, p.pref.level, p.pref.color);
+    g_message("Registering new user with nickname %s", p.nickname);
 
-    //create shared memory structure
-    int shmid = get_shm_key();
-    g_message("Registered shared memory with key: %d", shmid);
-
-    connect_to_server();
+    //get login message
+    login_msg m = generate_login_msg(p);
+    //and send it
+    connect_to_server(m);
+    
     //main window widget
     GtkWidget *window;
     window = gtk_window_new(GTK_WINDOW_TOPLEVEL);

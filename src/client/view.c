@@ -16,12 +16,12 @@
 */
 #include <stdio.h>
 #include <string.h>
-#include <errno.h>
 #include <stdlib.h>
 
 #include <gtk/gtk.h>
 
 #include "client/view.h"
+#include "client/logic.h"
 
 void show_perror_and_exit() {
     show_error_msg_and_exit(strerror(errno));
@@ -78,6 +78,7 @@ player show_new_player() {
         p.pref.color = 0;
     else
         p.pref.color = 1;
+    gtk_widget_destroy(GTK_WIDGET(window));
 
     return p;
 }

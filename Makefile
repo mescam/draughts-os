@@ -1,11 +1,11 @@
 SHELL		:=	/bin/bash
-CC			=	gcc
+CC			=	clang
 
-CFLAGS_CL	=	-Wall `pkg-config --cflags gtk+-3.0` -Iinclude/ -c
-LDFLAGS_CL	=	`pkg-config --libs gtk+-3.0`
+CFLAGS_CL	=	-Wall `pkg-config --cflags gtk+-3.0` -Iinclude/ -c -g
+LDFLAGS_CL	=	`pkg-config --libs gtk+-3.0` -g
 
-CFLAGS_SE	=	-Wall -Iinclude/ -c
-LDFLAGS_SE	=	
+CFLAGS_SE	=	-Wall -Iinclude/ -c -g
+LDFLAGS_SE	=	-g
 
 CLIENT_SRC 	=	$(wildcard src/client/*.c)
 SERVER_SRC	=	$(wildcard src/server/*.c)

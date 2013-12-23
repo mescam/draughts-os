@@ -20,17 +20,15 @@
 #include <sys/shm.h>
 #include "string.h"
 
-#include "client/logic.h"
 #include "common.h"
+#include "client/logic.h"
 #include "client/view.h"
 
-void connect_to_server() {
-    int res;
-    login_msg login;
-    login.mtype = 0;
-    strcpy(login.nickname, "mescam");
-    res = msgsnd(GLOBAL_QUEUE, &login, sizeof(login_msg) - sizeof(long), 0);
+void connect_to_server(login_msg m) {
+    int msgid = msgget(GLOBAL_QUEUE, 0666);
+    int res = msgsnd(msgid, &m, login_msg_size, 0);
     if(res < 0) {
+            perror(NULL);
             show_error_msg_and_exit("Error while connecting to server");
     }
 }
@@ -41,4 +39,23 @@ int get_shm_key() {
         show_perror_and_exit();
     }
     return k;
+}
+
+login_msg generate_login_msg(player p) {
+    login_msg m;
+    m.mtype = LOGIN_MSG_TYPE;
+    //write nickname
+    strcpy(m.nickname, p.nickname);
+    //create queue
+    m.queue_id = msgget(IPC_PRIVATE, 0666);
+    if(m.queue_id < 0) {
+        show_perror_and_exit();
+    }
+    //shared memory for preferences
+    int shmid = shmget(IPC_PRIVATE, sizeof(preferences), 0666);
+    preferences *pref = (preferences*) shmat(shmid, NULL, 0);
+    memcpy(pref, &(p.pref), sizeof(preferences));
+    m.shm_pref = shmid;
+
+    return m;
 }

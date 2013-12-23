@@ -15,7 +15,27 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-int main(int argc, char **argv) {
+#include <signal.h>
 
+#include "common.h"
+#include "server/logic.h"
+
+int main(int argc, char **argv) {
+    player *players[32] = { NULL };
+    int players_count = 0;
+    signal(SIGINT, sigint_cleanup); //we have to be prepared for ^C
+
+    //create messages queue
+    int msgid = msgget(GLOBAL_QUEUE, 0666);
+    if(msgid < 0) {
+        debug("Fatal error while creating msg queue %d: %s", msgid, strerror(errno));
+        exit(0);
+    }
+
+    while(1) { //main event loop
+        login_msg l;
+        int x = msgrcv(msgid, &l, login_msg_size, LOGIN_MSG_TYPE, 0); //sth is wrong here
+        debug("Player with nickname %s registered.", l.nickname);
+    }
     return 0;
 }

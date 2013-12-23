@@ -14,38 +14,34 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-#ifndef COMMON_H
-#define COMMON_H
-#include <stddef.h>
-#include <sys/types.h>
-#include <sys/msg.h>
-#include <sys/ipc.h>
-#include <sys/shm.h>
-#include <errno.h>
-#include <string.h>
+#include <stdarg.h>
+#include <time.h>
+#include <stdio.h>
 #include <stdlib.h>
 
-#define GLOBAL_QUEUE    42
-#define LOGIN_MSG_TYPE  1
-#define login_msg_size  sizeof(login_msg) - sizeof(long)
-
-typedef struct _login_msg {
-    long mtype;
-    char nickname[32];
-    int queue_id;
-    int shm_pref;
-} login_msg;
-
-typedef struct _preferences {
-    int level;
-    int color;
-} preferences;
-
-typedef struct _player {
-    char nickname[32];
-    preferences pref;
-} player;
+#include "common.h"
 
 
+void debug(char *msg, ...) {
+    //get and format time
+    char time_buff[20];
+    time_t rawtime;
+    struct tm *timeinfo;
+    time(&rawtime);
+    timeinfo = localtime(&rawtime);
+    strftime(time_buff, 20, "[%H:%M:%S]", timeinfo);
+    //arguments for printf
+    va_list args;
+    va_start(args, msg);
+    //print time
+    printf("%s ", time_buff);
+    //print data
+    printf(msg, args);
+    //print new line
+    printf("\n");
+}
 
-#endif
+void sigint_cleanup(int signum) {
+    debug("SIGINT caught: doing cleanup...");
+    exit(0);
+}
