@@ -32,13 +32,15 @@ void debug(char *msg, ...) {
     strftime(time_buff, 20, "[%H:%M:%S]", timeinfo);
     //arguments for printf
     va_list args;
+    char buff[1024 * 16];
     va_start(args, msg);
     //print time
     printf("%s ", time_buff);
     //print data
-    printf(msg, args);
+    vsprintf(buff, msg, args);
     //print new line
-    printf("\n");
+    printf("%s\n", buff);
+    va_end(args);
 }
 
 void sigint_cleanup(int signum) {

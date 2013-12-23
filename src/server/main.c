@@ -16,6 +16,7 @@
 */
 
 #include <signal.h>
+#include <stdio.h>
 
 #include "common.h"
 #include "server/logic.h"
@@ -26,16 +27,17 @@ int main(int argc, char **argv) {
     signal(SIGINT, sigint_cleanup); //we have to be prepared for ^C
 
     //create messages queue
-    int msgid = msgget(GLOBAL_QUEUE, 0666);
+    int msgid = msgget(GLOBAL_QUEUE, IPC_CREAT | 0666);
     if(msgid < 0) {
         debug("Fatal error while creating msg queue %d: %s", msgid, strerror(errno));
         exit(0);
+    }else{
+        debug("Listening on msg queue (key: %d, id: %d)", GLOBAL_QUEUE, msgid);
     }
-
+    login_msg temp_login;
     while(1) { //main event loop
-        login_msg l;
-        int x = msgrcv(msgid, &l, login_msg_size, LOGIN_MSG_TYPE, 0); //sth is wrong here
-        debug("Player with nickname %s registered.", l.nickname);
+        int x = msgrcv(msgid, &temp_login, login_msg_size, LOGIN_MSG_TYPE, 0);
+        debug("Player with nickname %s registered.", temp_login.nickname);
     }
     return 0;
 }
