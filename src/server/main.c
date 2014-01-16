@@ -21,8 +21,11 @@
 #include "common.h"
 #include "server/logic.h"
 
+
+
 int main(int argc, char **argv) {
     player *players[32] = { NULL };
+    game games[32];
     int players_count = 0;
     signal(SIGINT, sigint_cleanup); //we have to be prepared for ^C
 
@@ -36,8 +39,45 @@ int main(int argc, char **argv) {
     }
     login_msg temp_login;
     while(1) { //main event loop
-        int x = msgrcv(msgid, &temp_login, login_msg_size, LOGIN_MSG_TYPE, 0);
-        debug("Player with nickname %s registered.", temp_login.nickname);
+        int status;
+
+        //new player register
+        if((status = msgrcv(msgid, &temp_login, login_msg_size, LOGIN_MSG_TYPE, IPC_NOWAIT)) >= 0) {
+            debug("Player with nickname %s registered.", temp_login.nickname);
+            temp_login.queue_id = msgget(temp_login.queue_id, 0777);
+            if(temp_login.queue_id < 0) {
+                debug("Error in queue, connection refused");
+                continue;
+            }
+            add_new_player(players, &players_count, temp_login);
+        }//end of new player connected
+
+        int i;
+        for(i = 0; i < 32; i++) {
+            if(players[i] != NULl) {
+                int cmd = listen_commands(players[i]);
+                switch(cmd) {
+                    case 1: { //list games
+                        break;
+                    }
+
+                    case 2: { //new game
+                        break;
+                    }
+
+                    case 3: { //logout
+                        shmdt(players[i]->pref);
+                        debug("Player %s logged off", players[i]->nickname);
+                        player[i] = NULL;
+                        break;
+                    }
+
+                    default: {
+
+                    }
+                }
+            }
+        } //end of for
     }
     return 0;
 }

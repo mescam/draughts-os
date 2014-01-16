@@ -47,15 +47,22 @@ login_msg generate_login_msg(player p) {
     //write nickname
     strcpy(m.nickname, p.nickname);
     //create queue
-    m.queue_id = msgget(IPC_PRIVATE, 0666);
+    m.queue_id = getpid();
+    p.queue_id = msgget(m.queue_id, IPC_CREAT | 0777);
     if(m.queue_id < 0) {
+        printf("%d\n", m.queue_id);
+        perror(NULL);
         show_perror_and_exit();
     }
     //shared memory for preferences
-    int shmid = shmget(IPC_PRIVATE, sizeof(preferences), 0666);
+    int shm_key = getpid();
+    int shmid = shmget(shm_key, sizeof(preferences), IPC_CREAT | 0777);
+    if(shmid < 0) {
+        show_error_msg_and_exit("Error while creating shm");
+    }
     preferences *pref = (preferences*) shmat(shmid, NULL, 0);
     memcpy(pref, &(p.pref), sizeof(preferences));
-    m.shm_pref = shmid;
+    m.shm_pref = shm_key;
 
     return m;
 }

@@ -18,4 +18,7 @@
 #define LOGIC_H
 void debug(char *msg, ...);
 void sigint_cleanup(int signum);
+void add_new_player(player *players[32], int *pcount, login_msg login);
+void listen_commands(player *player);
+
 #endif
