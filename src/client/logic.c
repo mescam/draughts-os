@@ -25,43 +25,45 @@
 #include "client/view.h"
 
 void connect_to_server(login_msg m) {
-    int msgid = msgget(GLOBAL_QUEUE, 0666);
+    int msgid = msgget(GLOBAL_QUEUE, 0777);
     int res = msgsnd(msgid, &m, login_msg_size, 0);
     if(res < 0) {
             perror(NULL);
-            show_error_msg_and_exit("Error while connecting to server");
+            exit(1);
     }
 }
 
 int get_shm_key() {
-    int k = shmget(IPC_PRIVATE, sizeof(preferences), 0666);
+    int k = shmget(IPC_PRIVATE, sizeof(preferences), 0777);
     if (k < 0) {
-        show_perror_and_exit();
+        perror(NULL);
+        exit(1);
     }
     return k;
 }
 
-login_msg generate_login_msg(player p) {
+login_msg generate_login_msg(player *p) {
     login_msg m;
     m.mtype = LOGIN_MSG_TYPE;
     //write nickname
-    strcpy(m.nickname, p.nickname);
+    strcpy(m.nickname, p->nickname);
     //create queue
     m.queue_id = getpid();
-    p.queue_id = msgget(m.queue_id, IPC_CREAT | 0777);
-    if(m.queue_id < 0) {
-        printf("%d\n", m.queue_id);
+    p->queue_id = msgget(m.queue_id, IPC_CREAT | 0777);
+    if(p->queue_id < 0) {
+        printf("%d\n", p->queue_id);
         perror(NULL);
-        show_perror_and_exit();
+        exit(1);
     }
     //shared memory for preferences
     int shm_key = getpid();
     int shmid = shmget(shm_key, sizeof(preferences), IPC_CREAT | 0777);
     if(shmid < 0) {
-        show_error_msg_and_exit("Error while creating shm");
+        perror("Creating SHM");
+        exit(1);
     }
     preferences *pref = (preferences*) shmat(shmid, NULL, 0);
-    memcpy(pref, &(p.pref), sizeof(preferences));
+    memcpy(pref, p->pref, sizeof(preferences));
     m.shm_pref = shm_key;
 
     return m;

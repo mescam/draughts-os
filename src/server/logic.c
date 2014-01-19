@@ -50,7 +50,7 @@ void sigint_cleanup(int signum) {
 
 void add_new_player(player *players[32], int *pcount, login_msg login) {
     status_msg status;
-    status.mtype = 1;
+    status.mtype = STATUS_MSG_TYPE;
     //first empty space
     int id = -1;
     for(int i = 0; i < 32; i++) {
@@ -67,13 +67,10 @@ void add_new_player(player *players[32], int *pcount, login_msg login) {
     }
     players[id] = (player*) malloc(sizeof(player));
     (*pcount)++;
-    debug("Allocated player");
     strcpy(players[id]->nickname, login.nickname);
     int shmid = shmget(login.shm_pref, sizeof(preferences), 0777);
-    debug("Attaching preferences");
     players[id]->pref = shmat(shmid, NULL, 0);
     players[id]->queue_id = login.queue_id;
-    debug("Before read");
     debug("Preferences: %d %d", players[id]->pref->level, players[id]->pref->color);
     status.status = 0; //OK
     msgsnd(login.queue_id, &status, MSGSIZE(status_msg), 0);
@@ -82,10 +79,38 @@ void add_new_player(player *players[32], int *pcount, login_msg login) {
     return;
 }
 
-void listen_commands(player *player) {
+void add_new_game(player *player, game *games[32], int *internal_queues) {
+    int id = -1;
+    int i;
+    for(i = 0; i < 32; i++) {
+        if(games[i] == NULL) {
+            id = i;
+            break;
+        }
+    }
+    int queue_key, queue_id = -1;
+    while(queue_id < 0) {
+        queue_key = rand() ^ time(0);
+        queue_id = msgget(queue_key, 0777 | IPC_CREAT | IPC_EXCL);
+    }
+    internal_queues[id] = queue_id;
+    games[id] = malloc(sizeof(game));
+    strcpy((player->pref->color == 0) ? games[id]->player1 : games[id]->player2, player->nickname);
+    games[id]->game_id = id;
+    games[id]->queue_id = queue_key;
+    debug("Created new game by %s with gid %d and qid %d", 
+        player->nickname, games[id]->game_id, games[id]->queue_id);
+    game_created_msg msg;
+    msg.mtype = GAME_CREATED_MSG_TYPE;
+    msg.queue = queue_key;
+    msgsnd(player->queue_id, &msg, MSGSIZE(game_created_msg), 0);
+}
+
+int listen_commands(player *player) {
     int status;
     cmd_msg cmd;
-    if((status = msgrcv(player->queue_id, &cmd, MSGSIZE(cmd_msg), CMD_MSG_TYPE,IPC_NOWAIT)) >= 0) {
+    status = msgrcv(player->queue_id, &cmd, MSGSIZE(cmd_msg), CMD_MSG_TYPE, IPC_NOWAIT);
+    if(status > 0) {
         return cmd.command;
     }
     return -1;

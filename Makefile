@@ -1,10 +1,10 @@
 SHELL		:=	/bin/bash
-CC			=	clang
+CC			=	gcc
 
-CFLAGS_CL	=	-Wall `pkg-config --cflags gtk+-3.0` -Iinclude/ -c -g
-LDFLAGS_CL	=	`pkg-config --libs gtk+-3.0` -g
+CFLAGS_CL	=	-Wall -D_SVID_SOURCE=1 -g -Iinclude/ -c -std=c99
+LDFLAGS_CL	=	-g
 
-CFLAGS_SE	=	-Wall -Iinclude/ -c -g
+CFLAGS_SE	=	-Wall -D_SVID_SOURCE=1 -Iinclude/ -c -g -std=c99
 LDFLAGS_SE	=	-g
 
 CLIENT_SRC 	=	$(wildcard src/client/*.c)
@@ -19,13 +19,13 @@ client: $(CLIENT_OBJ)
 	$(CC) $(CLIENT_OBJ) -o bin/draughts-client $(LDFLAGS_CL)
 
 $(CLIENT_OBJ): obj/client/%.o : src/client/%.c
-	@$(CC) $(CFLAGS_CL) -c $< -o $@ 
+	$(CC) $(CFLAGS_CL) -c $< -o $@ 
 
 server: $(SERVER_OBJ)
 	$(CC) $(SERVER_OBJ) -o bin/draughts-server $(LDFLAGS_SE)
 
 $(SERVER_OBJ): obj/server/%.o : src/server/%.c
-	@$(CC) $(CFLAGS_SE) -c $< -o $@ 
+	$(CC) $(CFLAGS_SE) -c $< -o $@ 
 
 clean:
 	rm -f obj/client/*

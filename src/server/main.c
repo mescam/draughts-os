@@ -24,13 +24,18 @@
 
 
 int main(int argc, char **argv) {
+    srand(time(0));
     player *players[32] = { NULL };
-    game games[32];
+    game *games[32] = { NULL };
+    int internal_queues[32];
+    int board[8][8][32]; //oh wait, wtf?
+
+    //int i;
     int players_count = 0;
     signal(SIGINT, sigint_cleanup); //we have to be prepared for ^C
 
     //create messages queue
-    int msgid = msgget(GLOBAL_QUEUE, IPC_CREAT | 0666);
+    int msgid = msgget(GLOBAL_QUEUE, IPC_CREAT | 0777);
     if(msgid < 0) {
         debug("Fatal error while creating msg queue %d: %s", msgid, strerror(errno));
         exit(0);
@@ -54,21 +59,27 @@ int main(int argc, char **argv) {
 
         int i;
         for(i = 0; i < 32; i++) {
-            if(players[i] != NULl) {
+            if(players[i] != NULL) {
                 int cmd = listen_commands(players[i]);
                 switch(cmd) {
-                    case 1: { //list games
+                    case 0: { //list games
+                        games_msg gm;
+                        gm.mtype = GAMES_MSG_TYPE;
+                        memcpy(&(gm.games), &games, sizeof(games));
+                        msgsnd(players[i]->queue_id, &gm, MSGSIZE(games_msg), 0);
                         break;
                     }
 
-                    case 2: { //new game
+                    case 1: { //new game
+                        add_new_game(players[i], games, internal_queues);
                         break;
                     }
 
-                    case 3: { //logout
+                    case 2: { //logout
                         shmdt(players[i]->pref);
                         debug("Player %s logged off", players[i]->nickname);
-                        player[i] = NULL;
+                        players[i] = NULL;
+                        players_count--;
                         break;
                     }
 
@@ -77,7 +88,13 @@ int main(int argc, char **argv) {
                     }
                 }
             }
-        } //end of for
-    }
+        } //end of for listening player commands
+
+        for(i = 0 ; i < 32; i++) { //listen on games queues
+            if(games[i] == NULL)
+                continue;
+
+        }
+    }//end of main event loop
     return 0;
 }

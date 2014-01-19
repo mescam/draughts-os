@@ -4,5 +4,5 @@
 
 void connect_to_server(login_msg m);
 int get_shm_key();
-login_msg generate_login_msg(player p);
+login_msg generate_login_msg(player *p);
 #endif

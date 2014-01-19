@@ -25,10 +25,15 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <time.h>
+#include <unistd.h>
 
-#define GLOBAL_QUEUE    42
-#define LOGIN_MSG_TYPE  1
-#define CMD_MSG_TYPE    2
+#define GLOBAL_QUEUE            42
+#define LOGIN_MSG_TYPE          1
+#define STATUS_MSG_TYPE         1
+#define CMD_MSG_TYPE            2
+#define GAMES_MSG_TYPE          3
+#define GAME_CREATED_MSG_TYPE   10
 #define login_msg_size  sizeof(login_msg) - sizeof(long)
 #define MSGSIZE(X)  sizeof(X)-sizeof(long)
 
@@ -38,6 +43,11 @@ typedef struct _login_msg {
     int queue_id;
     int shm_pref;
 } login_msg;
+
+typedef struct _game_created_msg {
+    long mtype;
+    int queue;
+} game_created_msg;
 
 typedef struct _preferences {
     int level;
@@ -56,6 +66,11 @@ typedef struct _game {
     int game_id;
     int queue_id;
 } game;
+
+typedef struct _games_msg {
+    long mtype;
+    game games[32];
+} games_msg;
 
 typedef struct _status_msg {
     long mtype;
