@@ -80,6 +80,10 @@ void add_new_player(player *players[32], int *pcount, login_msg login, int queue
     return;
 }
 
+int is_black_field(int i, int j) {
+    return (i + j) % 2;
+}
+
 void add_new_game(player *player, game *games[32], game_state *states) {
     int id = -1;
     int i, j;
@@ -109,11 +113,22 @@ void add_new_game(player *player, game *games[32], game_state *states) {
 
     states[id].status = 0;
 
+    // for(i = 0; i < 8; i++) {
+    //     for(j = 0; j < 8; j++) {
+    //         states[id].board[i][j] = 0;
+    //     }
+    // }
     for(i = 0; i < 8; i++) {
         for(j = 0; j < 8; j++) {
-            states[id].board[i][j] = 0;
+            if(i < 3 && is_black_field(i, j))
+                states[id].board[i][j] = 1;
+            else if(i > 4 && is_black_field(i, j))
+                states[id].board[i][j] = -1;
+            else
+                states[id].board[i][j] = 0;
         }
     }
+
     for(i = 0; i < 32; i++) {
         states[id].observers[i] = NULL;
     }

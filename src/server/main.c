@@ -209,6 +209,13 @@ int main(int argc, char **argv) {
                     continue;
                 msgsnd(game_states[g_id].observers[j]->queue_id, &mm, MSGSIZE(move_made_msg), 0);
             }
+            //update our own map
+            int piece = game_states[g_id].board[mm.from_x][mm.from_y];
+            game_states[g_id].board[mm.from_x][mm.from_y] = 0;
+            game_states[g_id].board[mm.to_x][mm.to_y] = piece;
+            for(i = 0; i < mm.pawn_removed_count; i++) {
+                game_states[g_id].board[mm.pawn_removed[i][0]][mm.pawn_removed[i][1]] = 0;
+            } 
         }
 
         sleep(1);

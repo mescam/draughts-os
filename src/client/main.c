@@ -30,19 +30,28 @@ void wait_for_opponent() {
 }
 
 int is_black_field(int i, int j) {
-    return (i % 2 == 0 && j % 2 == 1) || (i % 2 == 1 && j % 2 == 0);
+    return (i + j) % 2;
 }
 
 void print_board(int board[][8]) {
     int i, j;
+    printf("    0   1   2   3   4   5   6   7 \n");
+    printf("  --------------------------------\n");
     for(i = 0; i < 8; i++) {
         printf("%d ", i);
         for(j = 0; j < 8; j++) {
-            if(board[i][j] == 1) printf("W");
-            else if(board[i][j] == -1) printf("B");
-            else printf(" ");
+            printf("|");
+            if(is_black_field(i,j)) 
+                printf(ANSI_BG_COLOR_BLACK);
+            else
+                printf(ANSI_BG_COLOR_WHITE);
+            if(board[i][j] == 1) printf(" " WHITE_PIECE " ");
+            else if(board[i][j] == -1) printf(" "BLACK_PIECE " ");
+            else printf("   ");
+            printf(ANSI_COLOR_RESET);
         }
-        printf("\n");
+        printf("|\n");
+        printf("  --------------------------------\n");
     }
 }
 
