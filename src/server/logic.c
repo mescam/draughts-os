@@ -48,7 +48,7 @@ void sigint_cleanup(int signum) {
     exit(0);
 }
 
-void add_new_player(player *players[32], int *pcount, login_msg login) {
+void add_new_player(player *players[32], int *pcount, login_msg login, int queue_key) {
     status_msg status;
     status.mtype = STATUS_MSG_TYPE;
     //first empty space
@@ -71,6 +71,7 @@ void add_new_player(player *players[32], int *pcount, login_msg login) {
     int shmid = shmget(login.shm_pref, sizeof(preferences), 0777);
     players[id]->pref = shmat(shmid, NULL, 0);
     players[id]->queue_id = login.queue_id;
+    players[id]->queue_key = queue_key;
     debug("Preferences: %d %d", players[id]->pref->level, players[id]->pref->color);
     status.status = 0; //OK
     msgsnd(login.queue_id, &status, MSGSIZE(status_msg), 0);
@@ -79,9 +80,9 @@ void add_new_player(player *players[32], int *pcount, login_msg login) {
     return;
 }
 
-void add_new_game(player *player, game *games[32], int *internal_queues) {
+void add_new_game(player *player, game *games[32], game_state *states) {
     int id = -1;
-    int i;
+    int i, j;
     for(i = 0; i < 32; i++) {
         if(games[i] == NULL) {
             id = i;
@@ -93,9 +94,30 @@ void add_new_game(player *player, game *games[32], int *internal_queues) {
         queue_key = rand() ^ time(0);
         queue_id = msgget(queue_key, 0777 | IPC_CREAT | IPC_EXCL);
     }
-    internal_queues[id] = queue_id;
+    states[id].queue_id = queue_id;
     games[id] = malloc(sizeof(game));
-    strcpy((player->pref->color == 0) ? games[id]->player1 : games[id]->player2, player->nickname);
+    strcpy(games[id]->player1, "\0");
+    strcpy(games[id]->player2, "\0");
+
+    if(player->pref->color == 0) {
+        strcpy(games[id]->player1, player->nickname);
+        states[id].player1 = player;
+    }else{
+        strcpy(games[id]->player2, player->nickname);
+        states[id].player2 = player;
+    }
+
+    states[id].status = 0;
+
+    for(i = 0; i < 8; i++) {
+        for(j = 0; j < 8; j++) {
+            states[id].board[i][j] = 0;
+        }
+    }
+    for(i = 0; i < 32; i++) {
+        states[id].observers[i] = NULL;
+    }
+    
     games[id]->game_id = id;
     games[id]->queue_id = queue_key;
     debug("Created new game by %s with gid %d and qid %d", 

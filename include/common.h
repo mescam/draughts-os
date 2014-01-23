@@ -16,6 +16,7 @@
 */
 #ifndef COMMON_H
 #define COMMON_H
+#define _BSD_SOURCE
 #include <stddef.h>
 #include <sys/types.h>
 #include <sys/msg.h>
@@ -33,6 +34,13 @@
 #define STATUS_MSG_TYPE         1
 #define CMD_MSG_TYPE            2
 #define GAMES_MSG_TYPE          3
+#define CLIENT_MOVE_MSG_TYPE    4
+#define GAME_START_MSG_TYPE     5
+#define GAME_JOIN_MSG_TYPE      6
+#define MOVE_MADE_MSG_TYPE      6
+#define OBSERVER_JOIN_MSG_TYPE  7
+#define OBSERVER_LEFT_MSG_TYPE  8
+#define GAME_END_MSG_TYPE       9
 #define GAME_CREATED_MSG_TYPE   10
 #define login_msg_size  sizeof(login_msg) - sizeof(long)
 #define MSGSIZE(X)  sizeof(X)-sizeof(long)
@@ -43,6 +51,37 @@ typedef struct _login_msg {
     int queue_id;
     int shm_pref;
 } login_msg;
+
+typedef struct _game_end_msg {
+    long mtype;
+    int win;
+} game_end_msg;
+
+typedef struct _observer_left_msg {
+    long mtype;
+    char nickname[32];
+    int queue_id;
+} observer_left_msg;
+
+typedef struct _observer_join_msg {
+    long mtype;
+    int board[8][8];
+} observer_join_msg;
+
+typedef struct _move_made_msg {
+    long mtype;
+    int from_x;
+    int from_y;
+    int to_x;
+    int to_y;
+    int pawn_removed_count;
+    int pawn_removed[16][2];
+} move_made_msg;
+
+typedef struct _game_start_msg {
+    long mtype;
+    int first;
+} game_start_msg;
 
 typedef struct _game_created_msg {
     long mtype;
@@ -58,7 +97,17 @@ typedef struct _player {
     char nickname[32];
     preferences *pref;
     int queue_id;
+    int queue_key;
 } player;
+
+typedef struct _game_state {
+    int board[8][8];
+    int status;
+    player *player1;
+    player *player2;
+    player *observers[32]; 
+    int queue_id;
+} game_state;
 
 typedef struct _game {
     char player1[32];
@@ -81,5 +130,11 @@ typedef struct _cmd_msg {
     long mtype;
     int command;
 } cmd_msg;
+
+typedef struct _game_join_msg {
+    long mtype;
+    char nickname[32];
+    int queue_id;
+} game_join_msg;
 
 #endif

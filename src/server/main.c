@@ -21,17 +21,84 @@
 #include "common.h"
 #include "server/logic.h"
 
+player *players[32] = { NULL };
+game *games[32] = { NULL };
+game_state game_states[32];
+int players_count = 0;
 
+int get_game_id_by_player(player *p) {
+    int i;
+    for(i = 0; i < 32; i++) {
+        if(games[i] == NULL)
+            continue;
+        if(game_states[i].player1 == p || game_states[i].player2 == p)
+            return i;
+    }
+    return -1;
+}
+
+player *get_player(int queue_key) {
+    int i;
+    for(i = 0; i < 32; i++) {
+        if(players[i] != NULL && players[i]->queue_key == queue_key)
+            return players[i];
+    }
+    return NULL;
+}
+
+void add_observer(int i, player *p) {
+    int j;
+    for(j = 0; j < 32; j++) {
+        if(game_states[i].observers[j] != NULL)
+            break;
+    }
+    game_states[i].observers[j] = p;
+
+    //send message about current board state
+    observer_join_msg oj;
+    oj.mtype = OBSERVER_JOIN_MSG_TYPE;
+    memcpy(oj.board, game_states[i].board, sizeof(int)*64);
+    msgsnd(p->queue_id, &oj, MSGSIZE(observer_join_msg), 0);
+}
+
+void init_game(int i) {
+    game_start_msg gsm1, gsm2;
+    gsm1.mtype = gsm2.mtype = GAME_START_MSG_TYPE;
+    gsm1.first = 1; gsm2.first = 0;
+    msgsnd(game_states[i].player1->queue_id, &gsm1, MSGSIZE(game_start_msg), 0);
+    msgsnd(game_states[i].player2->queue_id, &gsm2, MSGSIZE(game_start_msg), 0);
+}
+
+void listen_game(int i) {
+    int status;
+    game_join_msg gjm;
+    status = msgrcv(game_states[i].queue_id, &gjm, MSGSIZE(game_join_msg), GAME_JOIN_MSG_TYPE, IPC_NOWAIT);
+    if(status > 0) {
+        player *p = get_player(gjm.queue_id);
+        debug("New player %s in game %d", p->nickname, i);
+        debug("Game status is: %d", game_states[i].status);
+        if(game_states[i].status == 0 && strlen(games[i]->player1) == 0) {
+            strcpy(games[i]->player1, gjm.nickname);
+            game_states[i].status = 1;
+            game_states[i].player1 = p;
+            init_game(i);
+            return;
+        }
+        if(game_states[i].status == 0 && strlen(games[i]->player2) == 0) {
+            strcpy(games[i]->player2, gjm.nickname);
+            game_states[i].status = 1;
+            game_states[i].player2 = p;
+            init_game(i);
+            return;
+        }
+        if(game_states[i].status == 1) {
+            add_observer(i, p);
+        }
+    }
+}
 
 int main(int argc, char **argv) {
     srand(time(0));
-    player *players[32] = { NULL };
-    game *games[32] = { NULL };
-    int internal_queues[32];
-    int board[8][8][32]; //oh wait, wtf?
-
-    //int i;
-    int players_count = 0;
     signal(SIGINT, sigint_cleanup); //we have to be prepared for ^C
 
     //create messages queue
@@ -49,29 +116,54 @@ int main(int argc, char **argv) {
         //new player register
         if((status = msgrcv(msgid, &temp_login, login_msg_size, LOGIN_MSG_TYPE, IPC_NOWAIT)) >= 0) {
             debug("Player with nickname %s registered.", temp_login.nickname);
+            int queue_key = temp_login.queue_id;
             temp_login.queue_id = msgget(temp_login.queue_id, 0777);
             if(temp_login.queue_id < 0) {
                 debug("Error in queue, connection refused");
                 continue;
             }
-            add_new_player(players, &players_count, temp_login);
+            add_new_player(players, &players_count, temp_login, queue_key);
         }//end of new player connected
 
         int i;
-        for(i = 0; i < 32; i++) {
+        for(i = 0; i < 32; i++) { //listen commands from players
             if(players[i] != NULL) {
                 int cmd = listen_commands(players[i]);
                 switch(cmd) {
                     case 0: { //list games
                         games_msg gm;
                         gm.mtype = GAMES_MSG_TYPE;
-                        memcpy(&(gm.games), &games, sizeof(games));
+                        int k, j = 0;
+                        for(k = 0; k < 32; k++) {
+                            if(games[k] != NULL) {
+                                if(strlen(games[k]->player1) == 0 && players[i]->pref->color == 0 
+                                    && players[i]->pref->level == game_states[k].player2->pref->level) {
+                                    memcpy(gm.games+j, games[k], sizeof(game));
+                                    j++;
+                                }
+                                if(strlen(games[k]->player2) == 0 && players[i]->pref->color == 1
+                                    && players[i]->pref->level == game_states[k].player1->pref->level) {
+                                    memcpy(gm.games+j, games[k], sizeof(game));
+                                    j++;
+                                }
+                                if(strlen(games[k]->player1) != 0 && strlen(games[k]->player2) != 0) {
+                                    memcpy(gm.games+j, games[k], sizeof(game));
+                                    j++;
+                                }
+                            }
+                        }
+                        for(; j < 32; j++) {
+                            gm.games[j].game_id = -1;
+                            gm.games[j].queue_id = -1;
+                            strcpy(gm.games[j].player1, "\0");
+                            strcpy(gm.games[j].player2, "\0");
+                        }
                         msgsnd(players[i]->queue_id, &gm, MSGSIZE(games_msg), 0);
                         break;
-                    }
+                    } //end of list games
 
                     case 1: { //new game
-                        add_new_game(players[i], games, internal_queues);
+                        add_new_game(players[i], games, game_states);
                         break;
                     }
 
@@ -93,8 +185,33 @@ int main(int argc, char **argv) {
         for(i = 0 ; i < 32; i++) { //listen on games queues
             if(games[i] == NULL)
                 continue;
-
+            listen_game(i);
+        } //end of listen games
+        
+        for(i = 0; i < 32; i++) { //listen for moves
+            if(players[i] == NULL)
+                continue;
+            move_made_msg mm;
+            int status;
+            status = msgrcv(players[i]->queue_id, &mm, MSGSIZE(move_made_msg), CLIENT_MOVE_MSG_TYPE, IPC_NOWAIT);
+            if(status <= 0)
+                continue;
+            int g_id = get_game_id_by_player(players[i]);
+            mm.mtype = MOVE_MADE_MSG_TYPE;
+            debug("Got move from game %d", g_id);
+            if(game_states[g_id].player1 == players[i])
+                msgsnd(game_states[g_id].player2->queue_id, &mm, MSGSIZE(move_made_msg), 0);
+            else
+                msgsnd(game_states[g_id].player1->queue_id, &mm, MSGSIZE(move_made_msg), 0);
+            int j;
+            for(j = 0; j < 32; j++) {
+                if(game_states[g_id].observers[j] == NULL)
+                    continue;
+                msgsnd(game_states[g_id].observers[j]->queue_id, &mm, MSGSIZE(move_made_msg), 0);
+            }
         }
+
+        sleep(1);
     }//end of main event loop
     return 0;
 }

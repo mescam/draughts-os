@@ -1,10 +1,10 @@
 SHELL		:=	/bin/bash
 CC			=	gcc
 
-CFLAGS_CL	=	-Wall -D_SVID_SOURCE=1 -g -Iinclude/ -c -std=c99
+CFLAGS_CL	=	-Wall -D_SVID_SOURCE=1 -g -Iinclude/ -c -std=gnu99
 LDFLAGS_CL	=	-g
 
-CFLAGS_SE	=	-Wall -D_SVID_SOURCE=1 -Iinclude/ -c -g -std=c99
+CFLAGS_SE	=	-Wall -D_SVID_SOURCE=1 -Iinclude/ -c -g -std=gnu99
 LDFLAGS_SE	=	-g
 
 CLIENT_SRC 	=	$(wildcard src/client/*.c)

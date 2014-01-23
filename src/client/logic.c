@@ -50,6 +50,7 @@ login_msg generate_login_msg(player *p) {
     //create queue
     m.queue_id = getpid();
     p->queue_id = msgget(m.queue_id, IPC_CREAT | 0777);
+    p->queue_key = getpid();
     if(p->queue_id < 0) {
         printf("%d\n", p->queue_id);
         perror(NULL);
