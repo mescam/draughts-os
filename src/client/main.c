@@ -30,7 +30,7 @@ void wait_for_opponent() {
 }
 
 int is_black_field(int i, int j) {
-    return (i + j) % 2;
+    return ((i + j) % 2 == 0);
 }
 
 void print_board(int board[][8]) {

@@ -98,6 +98,7 @@ void listen_game(int i) {
 }
 
 int main(int argc, char **argv) {
+    //printf("%d", MSGSIZE(move_made_msg));
     srand(time(0));
     signal(SIGINT, sigint_cleanup); //we have to be prepared for ^C
 

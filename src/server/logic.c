@@ -81,7 +81,7 @@ void add_new_player(player *players[32], int *pcount, login_msg login, int queue
 }
 
 int is_black_field(int i, int j) {
-    return (i + j) % 2;
+    return ((i + j) % 2 == 0);
 }
 
 void add_new_game(player *player, game *games[32], game_state *states) {
