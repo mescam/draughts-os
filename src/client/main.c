@@ -76,6 +76,9 @@ void game_loop_player(int gid) {
     while(inGame) {
         system("clear");
         print_board(board);
+        printf("Your color: %s\n",
+            (myColor == 0) ? "white" : "black");
+
         move_made_msg mm;
         if(myTurn) {
             mm.mtype = CLIENT_MOVE_MSG_TYPE;
@@ -101,6 +104,25 @@ void game_loop_player(int gid) {
             board[mm.pawn_removed[i][0]][mm.pawn_removed[i][1]] = 0;
         }
         myTurn = !myTurn;
+    }
+}
+
+void game_loop_observer(int gid, int board[][8]) {
+    int i;
+    inGame = 1;
+    while(inGame) {
+        system("clear");
+        printf("OBSERVER MODE\n");
+        print_board(board);
+        printf("Game is in progress...\n");
+        move_made_msg mm;
+        msgrcv(p.queue_id, &mm, MSGSIZE(move_made_msg), MOVE_MADE_MSG_TYPE, 0);
+        int piece = board[mm.from_x][mm.from_y];
+        board[mm.from_x][mm.from_y] = 0;
+        board[mm.to_x][mm.to_y] = piece;
+        for(i = 0; i < mm.pawn_removed_count; i++) {
+            board[mm.pawn_removed[i][0]][mm.pawn_removed[i][1]] = 0;
+        }
     }
 }
 
@@ -131,7 +153,7 @@ void join_game(int g_queue) {
         status = msgrcv(p.queue_id, &oj, MSGSIZE(observer_join_msg), OBSERVER_JOIN_MSG_TYPE, IPC_NOWAIT);
         if(status > 0) {
             printf("Joined as observer\n");
-            //in game
+            game_loop_observer(g_queue, oj.board);
             break;
         }
     }
@@ -191,7 +213,7 @@ int main(int argc, char **argv) {
                     printf("Available games:\n");
                     for(i = 0; i < 32; i++) {
                         if(gm.games[i].game_id == -1)
-                            continue;
+                            break;
                         printf("%d | %s %s | queue id: %d\n", 
                             gm.games[i].game_id, gm.games[i].player1, 
                             gm.games[i].player2, gm.games[i].queue_id);
