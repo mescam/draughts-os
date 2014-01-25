@@ -115,7 +115,7 @@ int main(int argc, char **argv) {
         int status;
 
         //new player register
-        if((status = msgrcv(msgid, &temp_login, login_msg_size, LOGIN_MSG_TYPE, IPC_NOWAIT)) >= 0) {
+        if((status = msgrcv(msgid, &temp_login, MSGSIZE(login_msg), LOGIN_MSG_TYPE, IPC_NOWAIT)) >= 0) {
             debug("Player with nickname %s registered.", temp_login.nickname);
             int queue_key = temp_login.queue_id;
             temp_login.queue_id = msgget(temp_login.queue_id, 0777);

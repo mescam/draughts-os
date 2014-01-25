@@ -26,7 +26,7 @@
 
 void connect_to_server(login_msg m) {
     int msgid = msgget(GLOBAL_QUEUE, 0777);
-    int res = msgsnd(msgid, &m, login_msg_size, 0);
+    int res = msgsnd(msgid, &m, MSGSIZE(login_msg), 0);
     if(res < 0) {
             perror(NULL);
             exit(1);

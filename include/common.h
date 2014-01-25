@@ -57,7 +57,6 @@
 #define OBSERVER_LEFT_MSG_TYPE  8
 #define GAME_END_MSG_TYPE       9
 #define GAME_CREATED_MSG_TYPE   10
-#define login_msg_size  sizeof(login_msg) - sizeof(long)
 #define MSGSIZE(X)  sizeof(X)-sizeof(long)
 
 typedef struct _login_msg {
