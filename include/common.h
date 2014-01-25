@@ -85,10 +85,10 @@ typedef struct _observer_join_msg {
 
 typedef struct _move_made_msg {
     long mtype;
-    int from_x;
     int from_y;
-    int to_x;
+    int from_x;
     int to_y;
+    int to_x;
     int pawn_removed_count;
     int pawn_removed[16][2];
 } move_made_msg;

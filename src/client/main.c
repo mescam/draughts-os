@@ -90,7 +90,7 @@ void game_loop_player(int gid) {
             scanf("%d", &(mm.pawn_removed_count));
             for(i = 0; i < mm.pawn_removed_count; i++) {
                 printf("- x,y of %d. pawn: ", i);
-                scanf("%d %d", &(mm.pawn_removed[i][0]), &(mm.pawn_removed[i][1]));
+                scanf("%d %d", &(mm.pawn_removed[i][1]), &(mm.pawn_removed[i][0]));
             }
             msgsnd(p.queue_id, &mm, MSGSIZE(move_made_msg), 0);
         }else{
@@ -101,7 +101,7 @@ void game_loop_player(int gid) {
         board[mm.from_x][mm.from_y] = 0;
         board[mm.to_x][mm.to_y] = piece;
         for(i = 0; i < mm.pawn_removed_count; i++) {
-            board[mm.pawn_removed[i][0]][mm.pawn_removed[i][1]] = 0;
+            board[mm.pawn_removed[i][1]][mm.pawn_removed[i][1]] = 0;
         }
         myTurn = !myTurn;
     }
@@ -121,7 +121,7 @@ void game_loop_observer(int gid, int board[][8]) {
         board[mm.from_x][mm.from_y] = 0;
         board[mm.to_x][mm.to_y] = piece;
         for(i = 0; i < mm.pawn_removed_count; i++) {
-            board[mm.pawn_removed[i][0]][mm.pawn_removed[i][1]] = 0;
+            board[mm.pawn_removed[i][1]][mm.pawn_removed[i][0]] = 0;
         }
     }
 }

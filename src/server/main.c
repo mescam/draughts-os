@@ -215,7 +215,7 @@ int main(int argc, char **argv) {
             game_states[g_id].board[mm.from_x][mm.from_y] = 0;
             game_states[g_id].board[mm.to_x][mm.to_y] = piece;
             for(i = 0; i < mm.pawn_removed_count; i++) {
-                game_states[g_id].board[mm.pawn_removed[i][0]][mm.pawn_removed[i][1]] = 0;
+                game_states[g_id].board[mm.pawn_removed[i][1]][mm.pawn_removed[i][0]] = 0;
             } 
         }
 
