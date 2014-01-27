@@ -22,7 +22,7 @@
 
 #include "common.h"
 #include "client/logic.h"
-#include "client/view.h"
+
 
 void connect_to_server(login_msg m) {
     int msgid = msgget(GLOBAL_QUEUE, 0777);

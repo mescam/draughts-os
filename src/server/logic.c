@@ -45,15 +45,28 @@ void debug(char *msg, ...) {
 
 void sigint_cleanup(int signum) {
     debug("SIGINT caught: doing cleanup...");
+    msgctl(42, IPC_RMID, 0);
     exit(0);
 }
 
 void add_new_player(player *players[32], int *pcount, login_msg login, int queue_key) {
     status_msg status;
     status.mtype = STATUS_MSG_TYPE;
+    int i;
+    //check nicknames
+    for(i = 0; i < 32; i++) {
+        if(players[i] == NULL)
+            continue;
+        if(strcmp(players[i]->nickname, login.nickname) == 0) {
+            status.status = 1;
+            debug("Nickname is already in use.");
+            msgsnd(login.queue_id, &status, MSGSIZE(status_msg), 0);
+            return;
+        }
+    }
     //first empty space
     int id = -1;
-    for(int i = 0; i < 32; i++) {
+    for(i = 0; i < 32; i++) {
         if(players[i] == NULL) {
             id = i;
             break;
@@ -106,9 +119,11 @@ void add_new_game(player *player, game *games[32], game_state *states) {
     if(player->pref->color == 0) {
         strcpy(games[id]->player1, player->nickname);
         states[id].player1 = player;
+        states[id].player2 = NULL;
     }else{
         strcpy(games[id]->player2, player->nickname);
         states[id].player2 = player;
+        states[id].player1 = NULL;
     }
 
     states[id].status = 0;
@@ -131,6 +146,7 @@ void add_new_game(player *player, game *games[32], game_state *states) {
 
     for(i = 0; i < 32; i++) {
         states[id].observers[i] = NULL;
+        debug("Observer %d point to %p", i, states[id].observers[i]);
     }
     
     games[id]->game_id = id;

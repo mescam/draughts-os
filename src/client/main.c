@@ -19,7 +19,21 @@
 
 player p;
 int myColor;
-int inGame;
+volatile int inGame;
+int _gid;
+
+void endgame_as_player() {
+    printf("You've decided to end the game.\n");
+    printf("Please type who is the winner (1 - white, -1 - black): ");
+    game_end_msg ge;
+    ge.mtype = GAME_END_MSG_TYPE;
+    scanf("%d", &(ge.win));
+    msgsnd(_gid, &ge, MSGSIZE(game_end_msg), 0);
+}
+
+void signal_left_game_as_observer(int signum) {
+    inGame = 0;
+}
 
 void wait_for_opponent() {
     game_start_msg gsm;
@@ -36,7 +50,7 @@ int is_black_field(int i, int j) {
 void print_board(int board[][8]) {
     int i, j;
     printf("    0   1   2   3   4   5   6   7 \n");
-    printf("  --------------------------------\n");
+    printf("  +---+---+---+---+---+---+---+---+\n");
     for(i = 0; i < 8; i++) {
         printf("%d ", i);
         for(j = 0; j < 8; j++) {
@@ -46,17 +60,21 @@ void print_board(int board[][8]) {
             else
                 printf(ANSI_BG_COLOR_WHITE);
             if(board[i][j] == 1) printf(" " WHITE_PIECE " ");
-            else if(board[i][j] == -1) printf(" "BLACK_PIECE " ");
+            else if(board[i][j] == -1) printf(" " BLACK_PIECE " ");
             else printf("   ");
             printf(ANSI_COLOR_RESET);
         }
         printf("|\n");
-        printf("  --------------------------------\n");
+        printf("  +---+---+---+---+---+---+---+---+\n");
     }
+    printf("Note, that colors may vary depending on your settings\n");
+    printf("White piece - " WHITE_PIECE ", black piece - " BLACK_PIECE "\t");
 }
 
 void game_loop_player(int gid) {
+    _gid = gid;
     inGame = 1;
+    //signal(SIGINT, signal_endgame_as_player);
     int board[8][8];
     int i, j;
     int myTurn = (myColor == 0) ? 1 : 0;
@@ -82,21 +100,46 @@ void game_loop_player(int gid) {
         move_made_msg mm;
         if(myTurn) {
             mm.mtype = CLIENT_MOVE_MSG_TYPE;
-            printf("Give x,y of piece to move (eg. 0 1): ");
-            scanf("%d %d", &(mm.from_x), &(mm.from_y));
-            printf("Give x,y of destination point: ");
-            scanf("%d %d", &(mm.to_x), &(mm.to_y));
+            printf("It is your turn now. What is your command (move, end): ");
+            char cmd[8];
+            scanf("%s", cmd);
+            if(strcmp(cmd, "end") == 0) {
+                endgame_as_player();
+                game_end_msg ge;
+                if(msgrcv(p.queue_id, &ge, MSGSIZE(game_end_msg), GAME_END_MSG_TYPE, 0) > 0) {
+                    printf("Game has ended! The winner is %s!\n", (ge.win == 1) ? "white" : "black");
+                    inGame = 0;
+                    break;
+                }
+                break;
+            }
+            printf("Give x (horizontal), y (vertical) of piece to move (eg. 0 1): ");
+            scanf("%d %d", &(mm.from_y), &(mm.from_x));
+            printf("Give x, y of destination point: ");
+            scanf("%d %d", &(mm.to_y), &(mm.to_x));
             printf("How many pieces have you beaten? ");
             scanf("%d", &(mm.pawn_removed_count));
             for(i = 0; i < mm.pawn_removed_count; i++) {
-                printf("- x,y of %d. pawn: ", i);
-                scanf("%d %d", &(mm.pawn_removed[i][1]), &(mm.pawn_removed[i][0]));
+                printf("- x, y of %d. pawn: ", i);
+                scanf("%d %d", &(mm.pawn_removed[i][0]), &(mm.pawn_removed[i][1]));
             }
             msgsnd(p.queue_id, &mm, MSGSIZE(move_made_msg), 0);
         }else{
             printf("Enemy's turn, wait...\n");
-            msgrcv(p.queue_id, &mm, MSGSIZE(move_made_msg), MOVE_MADE_MSG_TYPE, 0);
+            while(1) {
+                if(msgrcv(p.queue_id, &mm, MSGSIZE(move_made_msg), MOVE_MADE_MSG_TYPE, IPC_NOWAIT) > 0) {
+                    break;
+                }
+                game_end_msg ge;
+                if(msgrcv(p.queue_id, &ge, MSGSIZE(game_end_msg), GAME_END_MSG_TYPE, IPC_NOWAIT) > 0) {
+                    printf("Game has ended! The winner is %s!\n", (ge.win == 1) ? "white" : "black");
+                    inGame = 0;
+                    break;
+                }
+            }
         }
+        if(!inGame)
+            break;
         int piece = board[mm.from_x][mm.from_y];
         board[mm.from_x][mm.from_y] = 0;
         board[mm.to_x][mm.to_y] = piece;
@@ -105,18 +148,45 @@ void game_loop_player(int gid) {
         }
         myTurn = !myTurn;
     }
+    inGame = 0;
 }
 
 void game_loop_observer(int gid, int board[][8]) {
     int i;
     inGame = 1;
+    _gid = gid;
+    signal(SIGINT, signal_left_game_as_observer);
     while(inGame) {
         system("clear");
         printf("OBSERVER MODE\n");
         print_board(board);
-        printf("Game is in progress...\n");
+        printf("\nGame is in progress...\tPress ^C to quit\n");
         move_made_msg mm;
-        msgrcv(p.queue_id, &mm, MSGSIZE(move_made_msg), MOVE_MADE_MSG_TYPE, 0);
+        while(1) {
+            if(msgrcv(p.queue_id, &mm, MSGSIZE(move_made_msg), MOVE_MADE_MSG_TYPE, IPC_NOWAIT) > 0) {
+                break;
+            }
+            game_end_msg ge;
+            if(msgrcv(p.queue_id, &ge, MSGSIZE(game_end_msg), GAME_END_MSG_TYPE, IPC_NOWAIT) > 0) {
+                printf("Game has ended! The winner is %s!\n", (ge.win == 1) ? "white" : "black");
+                inGame = 0;
+                break;
+            }
+            if(!inGame) {
+                printf("\n\n*** Leaving observer mode (gid: %d)\n\n", gid);
+                observer_left_msg ol;
+                ol.mtype = OBSERVER_LEFT_MSG_TYPE;
+                strcpy(ol.nickname, p.nickname);
+                ol.queue_id = p.queue_key;
+                printf("-----> %lu %d\n", MSGSIZE(observer_left_msg), OBSERVER_LEFT_MSG_TYPE);
+                if(msgsnd(gid, &ol, MSGSIZE(observer_left_msg), 0) < 0) {
+                    perror("Observer left error");    
+                }
+                break;
+            }
+        }
+        if(!inGame)
+            break;
         int piece = board[mm.from_x][mm.from_y];
         board[mm.from_x][mm.from_y] = 0;
         board[mm.to_x][mm.to_y] = piece;
@@ -124,6 +194,7 @@ void game_loop_observer(int gid, int board[][8]) {
             board[mm.pawn_removed[i][1]][mm.pawn_removed[i][0]] = 0;
         }
     }
+    signal(SIGINT, SIG_DFL);
 }
 
 void join_game(int g_queue) {
@@ -147,13 +218,13 @@ void join_game(int g_queue) {
         if(status > 0) {
             printf("Game started!\n");
             myColor = !gs.first;
-            game_loop_player(g_queue);
+            game_loop_player(gid);
             break;
         }
         status = msgrcv(p.queue_id, &oj, MSGSIZE(observer_join_msg), OBSERVER_JOIN_MSG_TYPE, IPC_NOWAIT);
         if(status > 0) {
             printf("Joined as observer\n");
-            game_loop_observer(g_queue, oj.board);
+            game_loop_observer(gid, oj.board);
             break;
         }
     }
@@ -165,11 +236,15 @@ int main(int argc, char **argv) {
     p.pref = malloc(sizeof(preferences));
     printf("Nickname: ");
     scanf("%32s", p.nickname);
-    printf("Level (0-3): ");
-    scanf("%d", &(p.pref->level));
-    printf("Color (0-WHITE, 1-BLACK): ");
-    scanf("%d", &(p.pref->color));
-
+    do {
+        printf("Level (0-3): ");
+        scanf("%d", &(p.pref->level));    
+    } while(p.pref->level > 3 && p.pref->level < 0);
+    do {
+        printf("Color (0-WHITE, 1-BLACK): ");
+        scanf("%d", &(p.pref->color));
+    } while(p.pref->color < 0 && p.pref->color > 1);
+    
     printf("Registering new user with nickname %s\n", p.nickname);
 
     //get login message
@@ -231,6 +306,10 @@ int main(int argc, char **argv) {
                     break;
                 }
                 case 2: { //logout!
+                    sleep(2);
+                    shmdt(p.pref);
+                    shmctl(getpid(), IPC_RMID, 0);
+                    msgctl(getpid(), IPC_RMID, 0);
                     return 0;
                 }
             }

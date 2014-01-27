@@ -28,6 +28,8 @@
 #include <stdio.h>
 #include <time.h>
 #include <unistd.h>
+#include <assert.h>
+#include <signal.h>
 
 #define ANSI_COLOR_RED          "\x1b[31m"
 #define ANSI_COLOR_GREEN        "\x1b[32m"

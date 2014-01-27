@@ -37,6 +37,19 @@ int get_game_id_by_player(player *p) {
     return -1;
 }
 
+int get_game_id_by_observer(player *p) {
+    int i, j;
+    for(i = 0; i < 32; i++) {
+        if(games[i] == NULL)
+            continue;
+        for(j = 0; j < 32; j++) {
+            if(game_states[i].observers[j] == p)
+                return i;
+        }
+    }
+    return -1;
+}
+
 player *get_player(int queue_key) {
     int i;
     for(i = 0; i < 32; i++) {
@@ -47,13 +60,20 @@ player *get_player(int queue_key) {
 }
 
 void add_observer(int i, player *p) {
-    int j;
+    int j, id;
+    id = -1;
     for(j = 0; j < 32; j++) {
-        if(game_states[i].observers[j] != NULL)
+        //debug("GID: %d Observer %d points to %p", i, j, game_states[i].observers[j]);
+        if(game_states[i].observers[j] == NULL) {
+            debug("Setting id to %d", j);
+            id = j;
             break;
+        }
     }
-    game_states[i].observers[j] = p;
-
+    assert(id != -1 && id < 32);
+    game_states[i].observers[id] = p;
+    assert(game_states[i].observers[id] == p);
+    debug("Added observer to game %d with id %d", i, id);
     //send message about current board state
     observer_join_msg oj;
     oj.mtype = OBSERVER_JOIN_MSG_TYPE;
@@ -93,6 +113,33 @@ void listen_game(int i) {
         }
         if(game_states[i].status == 1) {
             add_observer(i, p);
+        }
+    }
+    game_end_msg ge;
+    status = msgrcv(game_states[i].queue_id, &ge, MSGSIZE(game_end_msg), GAME_END_MSG_TYPE, IPC_NOWAIT);
+    if(status > 0) {
+        debug("Received GAME_END msg from gid: %d", i);
+        msgsnd(game_states[i].player1->queue_id, &ge, MSGSIZE(game_end_msg), 0);
+        msgsnd(game_states[i].player2->queue_id, &ge, MSGSIZE(game_end_msg), 0);
+        int k;
+        for(k = 0; k < 32; k++) {
+            if(game_states[i].observers[k] == NULL)
+                continue;
+            msgsnd(game_states[i].observers[k]->queue_id, &ge, MSGSIZE(game_end_msg), 0);
+        }
+        msgctl(games[i]->queue_id, IPC_RMID, 0);
+        games[i] = NULL;
+    }
+    observer_left_msg ol;
+    status = msgrcv(game_states[i].queue_id, &ol, MSGSIZE(observer_left_msg), OBSERVER_LEFT_MSG_TYPE, IPC_NOWAIT);
+    if(status > 0) {
+        debug("Got OBSERVER_LEFT msg from gid %d", i);
+        int k;
+        for(k = 0; k < 32; k++) {
+            if(game_states[i].observers[k] != NULL && game_states[i].observers[k]->queue_key == ol.queue_id) {
+                game_states[i].observers[k] = NULL;
+                debug("Removed observer %d from game %d", i, k);
+            }
         }
     }
 }
@@ -171,6 +218,7 @@ int main(int argc, char **argv) {
                     case 2: { //logout
                         shmdt(players[i]->pref);
                         debug("Player %s logged off", players[i]->nickname);
+                        free(players[i]);
                         players[i] = NULL;
                         players_count--;
                         break;
@@ -199,7 +247,7 @@ int main(int argc, char **argv) {
                 continue;
             int g_id = get_game_id_by_player(players[i]);
             mm.mtype = MOVE_MADE_MSG_TYPE;
-            debug("Got move from game %d", g_id);
+            debug("Got move from game %d, player %d", g_id, i);
             if(game_states[g_id].player1 == players[i])
                 msgsnd(game_states[g_id].player2->queue_id, &mm, MSGSIZE(move_made_msg), 0);
             else
@@ -208,6 +256,7 @@ int main(int argc, char **argv) {
             for(j = 0; j < 32; j++) {
                 if(game_states[g_id].observers[j] == NULL)
                     continue;
+                debug("Sending move to observer %d", j);
                 msgsnd(game_states[g_id].observers[j]->queue_id, &mm, MSGSIZE(move_made_msg), 0);
             }
             //update our own map
@@ -218,8 +267,8 @@ int main(int argc, char **argv) {
                 game_states[g_id].board[mm.pawn_removed[i][1]][mm.pawn_removed[i][0]] = 0;
             } 
         }
-
         sleep(1);
     }//end of main event loop
+    msgctl(42, IPC_RMID, 0);
     return 0;
 }
